@@ -128,8 +128,8 @@ class ResultScene extends Phaser.Scene {
 }
 
 // Phaser 3 Game Config
-const GAME_WIDTH = 433;
-const GAME_HEIGHT = 255;
+const GAME_WIDTH = 455;
+const GAME_HEIGHT = 256;
 const config = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
@@ -173,8 +173,8 @@ window.addEventListener('load', () => {
       window.screen.orientation.lock('landscape').catch(() => {});
     }
   }
-  forceLandscape();
-  window.addEventListener('orientationchange', forceLandscape);
+  // forceLandscape();
+  // window.addEventListener('orientationchange', forceLandscape);
 
   // Show overlay if not in landscape (mobile only)
   function showOrientationWarning() {
@@ -195,7 +195,7 @@ window.addEventListener('load', () => {
       overlay.style.left = 0;
       overlay.style.width = '100vw';
       overlay.style.height = '100vh';
-      overlay.style.background = 'rgba(0,0,0,0.95)';
+      overlay.style.background = 'rgba(0,0,0,0.75)';
       overlay.style.color = '#fff';
       overlay.style.display = 'flex';
       overlay.style.alignItems = 'center';
@@ -222,7 +222,7 @@ window.addEventListener('load', () => {
       hideOrientationWarning();
     }
   }
-  window.addEventListener('resize', checkOrientation);
-  window.addEventListener('orientationchange', checkOrientation);
-  checkOrientation();
+  // window.addEventListener('resize', checkOrientation);
+  // window.addEventListener('orientationchange', checkOrientation);
+  // checkOrientation();
 });
