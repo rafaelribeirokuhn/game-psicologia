@@ -333,9 +333,224 @@ class Puzzle3 extends Phaser.Scene {
 
 class Puzzle4 extends Phaser.Scene {
   constructor() { super('Puzzle4'); }
+  preload() {
+    this.load.image('galaxy', 'assets/backgrounds/galaxy.png');
+    this.load.image('lunar-surface-back', 'assets/backgrounds/lunar-surface-back.png');
+    this.load.image('lunar-surface-front', 'assets/backgrounds/lunar-surface-front.png');
+    // Load the spinning coin spritesheet (8 frames, 29x28 each, spacing 1)
+    this.load.spritesheet('spinning-coin', 'assets/sprites/spinning-coin.png', { frameWidth: 29, frameHeight: 28, margin: 0, spacing: 1 });
+    // Load the spinning fireball spritesheet (8 frames, 16x16 each, spacing 1)
+    this.load.spritesheet('spinning-fireball', 'assets/sprites/spinning-fireball.png', { frameWidth: 16, frameHeight: 16, margin: 0, spacing: 1 });
+  }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Puzzle 4 (Blank)', { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
-    this.input.once('pointerdown', () => this.scene.start('Puzzle5'));
+    // Layered background: galaxy, then lunar-surface-back, then lunar-surface-front
+    this.add.image(-1, 0, 'galaxy').setOrigin(0, 0);
+    this.add.image(-1, 0, 'lunar-surface-back').setOrigin(0, 0);
+    // We'll add lunar-surface-front after all sprites, so they appear behind it
+    const lunarSurfaceFront = this.add.image(-1, 0, 'lunar-surface-front').setOrigin(0, 0);
+
+
+    // Add 4 yellow and 4 red boxes (20x30) at specified positions
+    const boxPositions = [
+      { x: 78, y: this.sys.game.config.height - 25 },
+      { x: 180, y: this.sys.game.config.height - 25 },
+      { x: 275, y: this.sys.game.config.height - 25 },
+      { x: 370, y: this.sys.game.config.height - 25 }
+    ];
+    this.yellowBoxes = [];
+    this.redBoxes = [];
+    this.boxPairs = [];
+
+    // Load the coin animation if not already loaded
+    if (!this.anims.exists('spin-coin')) {
+      this.anims.create({
+        key: 'spin-coin',
+        frames: this.anims.generateFrameNumbers('spinning-coin', { start: 0, end: 7 }),
+        frameRate: 12,
+        repeat: -1
+      });
+    }
+    // Load the fireball animation if not already loaded
+    if (!this.anims.exists('spin-fireball')) {
+      this.anims.create({
+        key: 'spin-fireball',
+        frames: this.anims.generateFrameNumbers('spinning-fireball', { start: 0, end: 7 }),
+        frameRate: 12,
+        repeat: -1
+      });
+    }
+
+    for (let i = 0; i < boxPositions.length; i++) {
+      const pos = boxPositions[i];
+      // Replace yellow box with spinning coin sprite
+      const yellow = this.add.sprite(pos.x, pos.y, 'spinning-coin', 0).setOrigin(0.5);
+      yellow.displayWidth = 29;
+      yellow.displayHeight = 28;
+      yellow.initialY = pos.y;
+      yellow.isAtInitial = true;
+      yellow.colorType = 'yellow';
+      yellow.setInteractive({ useHandCursor: true });
+      yellow.isFalling = false;
+      yellow.isFrozen = false;
+      yellow.play('spin-coin');
+      yellow.on('pointerdown', () => {
+        if (yellow.isAtInitial || yellow.isFrozen) return;
+        // Create a glowing yellow circle effect at the coin's position
+        const glow = this.add.circle(yellow.x, yellow.y, 24, 0xfff200, 0.6)
+          .setOrigin(0.5)
+          .setDepth(yellow.depth + 1);
+        this.tweens.add({
+          targets: glow,
+          scale: 1.7,
+          alpha: 0,
+          duration: 500,
+          ease: 'Cubic.easeOut',
+          onComplete: () => glow.destroy()
+        });
+        yellow.isFrozen = true;
+        this.tweens.killTweensOf(yellow);
+        // Fade out the coin
+        this.tweens.add({
+          targets: yellow,
+          alpha: 0,
+          duration: 1000,
+          ease: 'Linear',
+        });
+        this.time.delayedCall(1000, () => {
+          this.tweens.killTweensOf(yellow);
+          yellow.y = yellow.initialY;
+          yellow.isAtInitial = true;
+          yellow.isFrozen = false;
+          yellow.isFalling = false;
+          yellow.setAlpha(1); // Restore visibility
+          const pair = this.boxPairs.find(p => p.yellow === yellow);
+          if (pair) this.trySchedulePairLaunch(pair);
+        });
+      });
+      this.yellowBoxes.push(yellow);
+
+      // Replace red box with spinning fireball sprite
+      const red = this.add.sprite(pos.x, pos.y, 'spinning-fireball', 0).setOrigin(0.5);
+      red.displayWidth = 16;
+      red.displayHeight = 16;
+      red.initialY = pos.y;
+      red.isAtInitial = true;
+      red.colorType = 'red';
+      red.setInteractive({ useHandCursor: true });
+      red.play('spin-fireball');
+      red.on('pointerdown', () => {
+        // Stop all coin and fireball animations
+        this.boxPairs.forEach(pair => {
+          if (pair.yellow.anims) pair.yellow.anims.stop();
+          if (pair.red.anims) pair.red.anims.stop();
+        });
+        // Grayscale effect (like Puzzle3 failure) and move to next puzzle
+        // Stop all box tweens and prevent further launches
+        this.boxPairs.forEach(pair => {
+          this.tweens.killTweensOf(pair.yellow);
+          this.tweens.killTweensOf(pair.red);
+          pair.yellow.disableInteractive();
+          pair.red.disableInteractive();
+        });
+        this._puzzle4Frozen = true;
+        let usedPipeline = false;
+        if (this.cameras.main.setPostPipeline && this.sys.game.renderer.pipelines) {
+          const grayPipeline = this.sys.game.renderer.pipelines.get('Gray');
+          if (grayPipeline) {
+            this.cameras.main.setPostPipeline('Gray');
+            usedPipeline = true;
+          }
+        }
+        const canvas = this.sys.game.canvas;
+        if (!usedPipeline && canvas) canvas.style.filter = 'grayscale(1)';
+        this.time.delayedCall(900, () => {
+          if (usedPipeline) this.cameras.main.clearPostPipeline();
+          if (canvas) canvas.style.filter = '';
+          this.scene.start('Puzzle5');
+        });
+      });
+      this.redBoxes.push(red);
+
+      this.boxPairs.push({ yellow, red });
+    }
+
+    // Start the launch/fall cycle for each pair
+    this.boxPairs.forEach(pair => {
+      this.trySchedulePairLaunch(pair);
+    });
+
+    // Move all coin and fireball sprites behind lunar-surface-front
+    this.boxPairs.forEach(pair => {
+      this.children.moveBelow(pair.yellow, lunarSurfaceFront);
+      this.children.moveBelow(pair.red, lunarSurfaceFront);
+    });
+  }
+
+  trySchedulePairLaunch(pair) {
+    // Stop all launches if frozen (after red click)
+    if (this._puzzle4Frozen) return;
+    // Only schedule if both are at initial position
+    if (!pair.yellow.isAtInitial || !pair.red.isAtInitial) return;
+    const delay = Phaser.Math.Between(0, 7000);
+    this.time.delayedCall(delay, () => {
+      if (this._puzzle4Frozen) return;
+      // Check again before launching
+      if (pair.yellow.isAtInitial && pair.red.isAtInitial) {
+        // Make red launch much rarer than yellow (e.g., 1 in 5 chance)
+        const launchRed = Phaser.Math.Between(1, 5) === 1;
+        this.launchBox(launchRed ? pair.red : pair.yellow, pair);
+      }
+    });
+  }
+
+  launchBox(box, pair) {
+    if (this._puzzle4Frozen) return;
+    if (!box.isAtInitial) return;
+    box.isAtInitial = false;
+    if (box.colorType === 'yellow') {
+      box.isFalling = false;
+      box.isFrozen = false;
+    }
+    this.tweens.add({
+      targets: box,
+      y: box.initialY - 200,
+      duration: 600,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.fallBox(box, pair);
+      }
+    });
+  }
+
+  fallBox(box, pair) {
+    if (this._puzzle4Frozen) return;
+    if (box.colorType === 'yellow') {
+      // If frozen by user click, do not fall
+      if (box.isFrozen) {
+        // Instantly snap to initial position if not already there
+        this.tweens.killTweensOf(box);
+        box.y = box.initialY;
+        box.isAtInitial = true;
+        box.isFrozen = false;
+        box.isFalling = false;
+        const pairObj = this.boxPairs.find(p => p.yellow === box);
+        if (pairObj) this.trySchedulePairLaunch(pairObj);
+        return;
+      }
+      box.isFalling = true;
+    }
+    this.tweens.add({
+      targets: box,
+      y: box.initialY,
+      duration: 1000,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        box.isAtInitial = true;
+        if (box.colorType === 'yellow') box.isFalling = false;
+        // Only schedule next launch if both are at initial position
+        this.trySchedulePairLaunch(pair);
+      }
+    });
   }
 }
 
