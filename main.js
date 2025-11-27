@@ -144,7 +144,7 @@ const config = {
   }
 };
 
-// Start Phaser game and force fullscreen
+// Start Phaser game, force fullscreen, and force landscape on mobile
 window.addEventListener('load', () => {
   const game = new Phaser.Game(config);
   function goFullscreen() {
@@ -153,10 +153,70 @@ window.addEventListener('load', () => {
       canvas.requestFullscreen();
     }
   }
+
   // Try to go fullscreen on load
   goFullscreen();
   // Also go fullscreen on any user interaction (required by some browsers)
   window.addEventListener('pointerdown', goFullscreen, { once: true });
   window.addEventListener('touchstart', goFullscreen, { once: true });
   window.addEventListener('keydown', goFullscreen, { once: true });
+
+  // Force landscape orientation on mobile
+  function forceLandscape() {
+    if (window.screen.orientation && window.screen.orientation.lock) {
+      window.screen.orientation.lock('landscape').catch(() => {});
+    }
+  }
+  forceLandscape();
+  window.addEventListener('orientationchange', forceLandscape);
+
+  // Show overlay if not in landscape (mobile only)
+  function showOrientationWarning() {
+    let overlay = document.getElementById('orientation-warning');
+    if (!overlay) {
+      // Inject retro font if not present
+      if (!document.getElementById('retro-font-link')) {
+        const link = document.createElement('link');
+        link.id = 'retro-font-link';
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
+        document.head.appendChild(link);
+      }
+      overlay = document.createElement('div');
+      overlay.id = 'orientation-warning';
+      overlay.style.position = 'fixed';
+      overlay.style.top = 0;
+      overlay.style.left = 0;
+      overlay.style.width = '100vw';
+      overlay.style.height = '100vh';
+      overlay.style.background = 'rgba(0,0,0,0.95)';
+      overlay.style.color = '#fff';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.fontSize = '1em';
+      overlay.style.zIndex = 9999;
+      overlay.style.padding = '32px';
+      overlay.style.boxSizing = 'border-box';
+      overlay.style.fontFamily = "'Press Start 2P', monospace";
+      overlay.innerText = 'Por favor, gire seu celular para o modo paisagem';
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'flex';
+  }
+  function hideOrientationWarning() {
+    const overlay = document.getElementById('orientation-warning');
+    if (overlay) overlay.style.display = 'none';
+  }
+  function checkOrientation() {
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    if (isMobile && window.innerWidth < window.innerHeight) {
+      showOrientationWarning();
+    } else {
+      hideOrientationWarning();
+    }
+  }
+  window.addEventListener('resize', checkOrientation);
+  window.addEventListener('orientationchange', checkOrientation);
+  checkOrientation();
 });
