@@ -85,13 +85,84 @@ class Puzzle2 extends Phaser.Scene {
   constructor() { super('Puzzle2'); }
   preload() {
     this.load.image('find-items-bg', 'assets/backgrounds/find-the-items.png');
+    this.load.image('check-mark', 'assets/sprites/check-mark.png');
   }
   create() {
     // Set the find-the-items image as the background
     this.bg = this.add.image(0, 0, 'find-items-bg').setOrigin(0, 0);
-    // (Point-and-click logic will be added step by step)
-    // For now, click anywhere to continue
-    this.input.once('pointerdown', () => this.scene.start('Puzzle3'));
+
+    // Add 11 individually positioned clickable blue boxes (15x15)
+    this.blueBoxes = [];
+    const blueBoxSize = 15;
+    // Example positions (customize as needed)
+    const bluePositions = [
+      { x: 162,  y: 213 }, // flower
+      { x: 131,  y: 10 }, // sleeping dog
+      { x: 309, y: 218 }, // fruit
+      { x: 254, y: 161 }, //grave
+      { x: 89, y: 204 }, // robot
+      { x: 296, y: 154 }, // mouse
+      { x: 255, y: 141 }, // ghost
+      { x: 240, y: 198 }, // camera
+      { x: 203, y: 216 }, // cow
+      { x: 18, y: 243 }, // thrash can
+      { x: 320, y: 40 } // bird
+    ];
+
+    // Add 11 individually positioned clickable red boxes (15x15)
+    this.redBoxes = [];
+    const redBoxSize = 15;
+    // Example positions for red boxes (customize as needed)
+    const redPositions = [
+      { x: 341,  y: 246 },  // flower
+      { x: 351, y: 231 }, // sleeping dog
+      { x: 358, y: 246 }, // fruit
+      { x: 376, y: 220 }, //grave
+      { x: 376, y: 243 }, // robot
+      { x: 396, y: 217 }, // mouse
+      { x: 397, y: 242 }, // ghost
+      { x: 413, y: 225 }, // camera
+      { x: 438, y: 219 }, // cow
+      { x: 428, y: 246 }, // thrash can
+      { x: 444, y: 245 } // bird
+    ];
+
+    this.checkMarks = {};
+    for (let i = 0; i < 11; i++) {
+      const blueBoxPos = bluePositions[i];
+          const blueBox = this.add.rectangle(blueBoxPos.x, blueBoxPos.y, blueBoxSize, blueBoxSize)
+            .setFillStyle(0x2196f3, 0.001)
+            .setStrokeStyle(2, 0x1565c0, 0.001)
+            .setInteractive() // pass { useHandCursor: true } to see the pointer
+            .on('pointerdown', () => {
+              // Place check-mark at the corresponding red box position
+              const redBoxPos = redPositions[i];
+              // Only add one check-mark per blue box
+              if (!(i in this.checkMarks)) {
+                const check = this.add.image(redBoxPos.x, redBoxPos.y, 'check-mark').setOrigin(0.5);
+                this.checkMarks[i] = check;
+              }
+              if (Object.keys(this.checkMarks).length === 11) {
+                // All items found, proceed to next puzzle after a short delay
+                this.time.delayedCall(1000, () => {
+                  this.scene.start('Puzzle3');
+                });
+              }
+            });
+      this.blueBoxes.push(blueBox);
+
+      const redBoxPos = redPositions[i];
+          const redBox = this.add.rectangle(redBoxPos.x, redBoxPos.y, redBoxSize, redBoxSize)
+            .setFillStyle(0xf44336, 0.001)
+            .setStrokeStyle(2, 0xb71c1c, 0.001);
+      this.redBoxes.push(redBox);
+    }
+
+    // Tap/click to continue (for now, bottom right corner)
+    this.nextBtn = this.add.text(GAME_WIDTH - 8, 14, '→', { fontSize: '20px', color: '#5136a9' })
+      .setOrigin(1, 1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.scene.start('Puzzle3'));
   }
 }
 
