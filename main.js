@@ -200,15 +200,16 @@ class Puzzle2 extends Phaser.Scene {
 }
 
 class Puzzle3 extends Phaser.Scene {
-  constructor() { super('Puzzle3'); }
-  preload() {
-    this.load.image('simon-space-ship', 'assets/sprites/simon-space-ship.png');
-  }
   init() {
+    this._score = 0;
     this.sequence = [];
     this.userStep = 0;
     this.level = 1;
     this.isUserTurn = false;
+  }
+  constructor() { super('Puzzle3'); }
+  preload() {
+    this.load.image('simon-space-ship', 'assets/sprites/simon-space-ship.png');
   }
   create() {
     // Place the simon-space-ship in the center of the screen
@@ -230,7 +231,6 @@ class Puzzle3 extends Phaser.Scene {
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => {
-          console.log('this.isUserTurn', this.isUserTurn);
           if (!this.isUserTurn) return;
           this.handleUserInput(idx);
         });
@@ -329,11 +329,14 @@ class Puzzle3 extends Phaser.Scene {
     if (idx === this.sequence[this.userStep]) {
       this.userStep++;
       if (this.userStep === this.sequence.length) {
+        this._score++;
         this.isUserTurn = false;
         this.time.delayedCall(700, () => this.nextLevel(), []);
       }
     } else {
-      // User failed: grayscale effect and stop ship animation
+      // User failed: store score, grayscale effect and stop ship animation
+      window.PUZZLE_SCORES = window.PUZZLE_SCORES || {};
+      window.PUZZLE_SCORES.puzzle3 = this._score;
       this.isUserTurn = false;
       // Stop ship animation
       if (this.ship && this.ship.anims) this.ship.anims.stop && this.ship.anims.stop();
