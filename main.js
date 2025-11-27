@@ -422,6 +422,8 @@ class Puzzle4 extends Phaser.Scene {
       });
     }
 
+    // Track coin clicks for score
+    this.coinClicks = 0;
     for (let i = 0; i < boxPositions.length; i++) {
       const pos = boxPositions[i];
       // Replace yellow box with spinning coin sprite
@@ -458,6 +460,7 @@ class Puzzle4 extends Phaser.Scene {
           duration: 1000,
           ease: 'Linear',
         });
+        this.coinClicks++;
         this.time.delayedCall(1000, () => {
           this.tweens.killTweensOf(yellow);
           yellow.y = yellow.initialY;
@@ -481,6 +484,9 @@ class Puzzle4 extends Phaser.Scene {
       red.setInteractive({ useHandCursor: true });
       red.play('spin-fireball');
       red.on('pointerdown', () => {
+        // Store coin click score
+        window.PUZZLE_SCORES = window.PUZZLE_SCORES || {};
+        window.PUZZLE_SCORES.puzzle4 = this.coinClicks;
         // Stop all coin and fireball animations
         this.boxPairs.forEach(pair => {
           if (pair.yellow.anims) pair.yellow.anims.stop();
