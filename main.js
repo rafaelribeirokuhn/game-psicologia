@@ -1,9 +1,15 @@
 // --- Scene Definitions ---
 class StartScene extends Phaser.Scene {
   constructor() { super('StartScene'); }
+  preload() {
+    this.load.image('start-screen', 'assets/backgrounds/start-screen.png');
+  }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 50, 'Retro Puzzle Game', { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
-    const playBtn = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY + 50, 'PLAY', { fontSize: '28px', color: '#0f0', backgroundColor: '#333', padding: { x: 20, y: 10 } })
+    // Add the start screen background
+    this.add.image(0, 0, 'start-screen').setOrigin(0, 0);
+    // Place an almost invisible clickable play button over the image's "start" button
+    // Adjust these coordinates and size to match the "start" button on your image
+    const playBtnArea = this.add.rectangle(228, 185, 120, 44, 0x00ff00, 0.01)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('Puzzle1'));
