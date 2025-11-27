@@ -682,8 +682,78 @@ class Puzzle5 extends Phaser.Scene {
 class ResultScene extends Phaser.Scene {
   constructor() { super('ResultScene'); }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Result / Score (Blank)', { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
-    this.input.once('pointerdown', () => this.scene.start('StartScene'));
+    // Gather scores
+    const scores = window.PUZZLE_SCORES || {};
+    // Table data: [label, value, unit]
+    const table = [
+      ['Replique o desenho', scores.puzzle1 ?? '-', 'Cliques na borracha'],
+      ['Encontre os itens', scores.puzzle2 ?? '-', 'Segundos'],
+      ['Acerte a sequência', scores.puzzle3 ?? '-', 'Sequências'],
+      ['Pegue as moedas', scores.puzzle4 ?? '-', 'Moedas coletadas'],
+      ['Replique o desenho (s/ ref)', scores.puzzle5 ?? '-', 'Cliques na borracha']
+    ];
+
+    const headerY = 18;
+    const startY = headerY + 24;
+    const rowHeight = 32;
+    // Header at the very top
+    this.add.text(this.cameras.main.centerX, headerY, 'RESULTADO', {
+      fontSize: '16px', color: '#ffd700', fontFamily: 'Press Start 2P', padding: { left: 2, right: 2, top: 1, bottom: 1 }
+    }).setOrigin(0.5);
+
+    // Table rows
+    for (let i = 0; i < table.length; i++) {
+      const [label, value, unit] = table[i];
+      const y = startY + rowHeight * i;
+      // Use fixed width for alignment
+      const rowText = `${label.padEnd(8)} ${String(value).padStart(6)}   ${unit}`;
+      this.add.text(this.cameras.main.centerX, y, rowText, {
+        fontSize: '1em', color: '#fff', fontFamily: 'Press Start 2P monospace', padding: { left: 2, right: 2, top: 1, bottom: 1 }
+      }).setOrigin(0.5);
+    }
+
+    // Remove any previous input if present
+    if (document.getElementById('result-input')) {
+      document.body.removeChild(document.getElementById('result-input'));
+    }
+    // Create native input at fixed position (55, 215)
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'result-input';
+    input.placeholder = 'E-mail';
+    input.style.position = 'absolute';
+    input.style.zIndex = 1000;
+    input.style.fontFamily = 'Press Start 2P, monospace';
+    input.style.fontSize = '12px';
+    input.style.background = '#111';
+    input.style.color = '#fff';
+    input.style.border = '2px solid #FFD700';
+    input.style.borderRadius = '4px';
+    input.style.padding = '2px 6px';
+    input.style.width = '220px';
+    input.style.height = '26px';
+    input.style.left = '260px';
+    input.style.bottom = '270px';
+    document.body.appendChild(input);
+
+    // Button background
+    const btnBg = this.add.rectangle(260, 215, 20, 4, 0x222222, 0.95)
+      .setOrigin(0, 0.5)
+      .setDepth(100);
+    // Button to return to start screen
+    const btn = this.add.text(260, 215, 'VOLTAR AO INÍCIO', {
+      fontSize: '12px', color: '#0f0', fontFamily: 'Press Start 2P monospace', padding: { left: 8, right: 8, top: 4, bottom: 4 }, align: 'center'
+    })
+      .setOrigin(0, 0.5)
+      .setDepth(101)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        // Remove input on leaving scene
+        if (document.getElementById('result-input')) {
+          document.body.removeChild(document.getElementById('result-input'));
+        }
+        this.scene.start('StartScene');
+      });
   }
 }
 
