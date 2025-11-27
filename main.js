@@ -57,7 +57,8 @@ class Puzzle1 extends Phaser.Scene {
       this.lastPos = null;
     });
 
-    // Eraser image button (undo)
+    // Track eraser clicks for score
+    this.eraserClicks = 0;
     this.eraserBtn = this.add.image(55, GAME_HEIGHT - 45, 'eraser')
       .setOrigin(0.5, 0.5)
       .setScale(0.7)
@@ -66,6 +67,7 @@ class Puzzle1 extends Phaser.Scene {
         if (this.strokes.length > 0) {
           this.strokes.pop();
           this.redrawStrokes();
+          this.eraserClicks++;
         }
       });
 
@@ -73,7 +75,11 @@ class Puzzle1 extends Phaser.Scene {
     this.nextBtn = this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 4, '→', { fontSize: '20px', color: '#0f0' })
       .setOrigin(1, 1)
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.start('Puzzle2'));
+      .on('pointerdown', () => {
+        window.PUZZLE_SCORES = window.PUZZLE_SCORES || {};
+        window.PUZZLE_SCORES.puzzle1 = this.eraserClicks;
+        this.scene.start('Puzzle2');
+      });
   }
 
   redrawStrokes() {
@@ -629,7 +635,8 @@ class Puzzle5 extends Phaser.Scene {
       this.lastPos = null;
     });
 
-    // Eraser image button (undo)
+    // Track eraser clicks for score
+    this.eraserClicks = 0;
     this.eraserBtn = this.add.image(55, GAME_HEIGHT - 45, 'eraser')
       .setOrigin(0.5, 0.5)
       .setScale(0.7)
@@ -638,6 +645,7 @@ class Puzzle5 extends Phaser.Scene {
         if (this.strokes.length > 0) {
           this.strokes.pop();
           this.redrawStrokes();
+          this.eraserClicks++;
         }
       });
 
@@ -645,7 +653,11 @@ class Puzzle5 extends Phaser.Scene {
     this.nextBtn = this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 4, '→', { fontSize: '20px', color: '#0f0' })
       .setOrigin(1, 1)
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.start('ResultScene'));
+      .on('pointerdown', () => {
+        window.PUZZLE_SCORES = window.PUZZLE_SCORES || {};
+        window.PUZZLE_SCORES.puzzle5 = this.eraserClicks;
+        this.scene.start('ResultScene');
+      });
   }
 
   redrawStrokes() {
