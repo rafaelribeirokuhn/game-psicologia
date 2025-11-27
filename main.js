@@ -148,6 +148,24 @@ class Puzzle2 extends Phaser.Scene {
                 const check = this.add.image(redBoxPos.x, redBoxPos.y, 'check-mark').setOrigin(0.5);
                 this.checkMarks[i] = check;
               }
+
+              // Add bright, slow glow to blue and red box
+              const blueGlow = this.add.circle(blueBoxPos.x, blueBoxPos.y, 20, 0x2196f3, 0.85)
+                .setDepth(10);
+              const redGlow = this.add.circle(redBoxPos.x, redBoxPos.y, 20, 0xf44336, 0.85)
+                .setDepth(10);
+              this.tweens.add({
+                targets: [blueGlow, redGlow],
+                scale: 2.5,
+                alpha: 0,
+                duration: 2200,
+                ease: 'Cubic.easeOut',
+                onComplete: () => {
+                  blueGlow.destroy();
+                  redGlow.destroy();
+                }
+              });
+
               if (Object.keys(this.checkMarks).length === 11) {
                 // All items found, proceed to next puzzle after a short delay
                 this.time.delayedCall(1000, () => {
