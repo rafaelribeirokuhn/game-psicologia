@@ -83,8 +83,14 @@ class Puzzle1 extends Phaser.Scene {
 
 class Puzzle2 extends Phaser.Scene {
   constructor() { super('Puzzle2'); }
+  preload() {
+    this.load.image('find-items-bg', 'assets/backgrounds/find-the-items.png');
+  }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Puzzle 2 (Flying Coins)', { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
+    // Set the find-the-items image as the background
+    this.bg = this.add.image(0, 0, 'find-items-bg').setOrigin(0, 0);
+    // (Point-and-click logic will be added step by step)
+    // For now, click anywhere to continue
     this.input.once('pointerdown', () => this.scene.start('Puzzle3'));
   }
 }
