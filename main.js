@@ -562,9 +562,72 @@ class Puzzle4 extends Phaser.Scene {
 
 class Puzzle5 extends Phaser.Scene {
   constructor() { super('Puzzle5'); }
+  preload() {
+    this.load.image('draw-the-image-blank', 'assets/backgrounds/draw-the-image-blank.png');
+    this.load.image('eraser', 'assets/sprites/eraser.png');
+  }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Puzzle 5 (Blank)', { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
-    this.input.once('pointerdown', () => this.scene.start('ResultScene'));
+    // Add blank background image (pixel-perfect)
+    this.bg = this.add.image(0, 0, 'draw-the-image-blank').setOrigin(0, 0);
+    // Create a graphics object for drawing
+    this.drawing = this.add.graphics();
+    this.drawing.lineStyle(2, 0xffd700, 1); // thinner for pixel art
+    this.isDrawing = false;
+    this.lastPos = null;
+    this.strokes = [];
+    this.currentStroke = null;
+
+    // Touch/mouse events for drawing
+    this.input.on('pointerdown', pointer => {
+      this.isDrawing = true;
+      this.lastPos = { x: pointer.x, y: pointer.y };
+      this.currentStroke = [{ x: pointer.x, y: pointer.y }];
+    });
+    this.input.on('pointermove', pointer => {
+      if (this.isDrawing && this.lastPos) {
+        this.drawing.lineBetween(this.lastPos.x, this.lastPos.y, pointer.x, pointer.y);
+        this.currentStroke.push({ x: pointer.x, y: pointer.y });
+        this.lastPos = { x: pointer.x, y: pointer.y };
+      }
+    });
+    this.input.on('pointerup', () => {
+      this.isDrawing = false;
+      if (this.currentStroke && this.currentStroke.length > 1) {
+        this.strokes.push(this.currentStroke);
+      }
+      this.currentStroke = null;
+      this.lastPos = null;
+    });
+
+    // Eraser image button (undo)
+    this.eraserBtn = this.add.image(55, GAME_HEIGHT - 45, 'eraser')
+      .setOrigin(0.5, 0.5)
+      .setScale(0.7)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        if (this.strokes.length > 0) {
+          this.strokes.pop();
+          this.redrawStrokes();
+        }
+      });
+
+    // Tap/click to continue (for now, bottom right corner)
+    this.nextBtn = this.add.text(GAME_WIDTH - 8, GAME_HEIGHT - 4, '→', { fontSize: '20px', color: '#0f0' })
+      .setOrigin(1, 1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.scene.start('ResultScene'));
+  }
+
+  redrawStrokes() {
+    this.drawing.clear();
+    this.drawing.lineStyle(2, 0xffd700, 1);
+    for (const stroke of this.strokes) {
+      for (let i = 1; i < stroke.length; i++) {
+        const p1 = stroke[i - 1];
+        const p2 = stroke[i];
+        this.drawing.lineBetween(p1.x, p1.y, p2.x, p2.y);
+      }
+    }
   }
 }
 
