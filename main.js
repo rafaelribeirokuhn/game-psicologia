@@ -168,9 +168,166 @@ class Puzzle2 extends Phaser.Scene {
 
 class Puzzle3 extends Phaser.Scene {
   constructor() { super('Puzzle3'); }
+  preload() {
+    this.load.image('simon-space-ship', 'assets/sprites/simon-space-ship.png');
+  }
+  init() {
+    this.sequence = [];
+    this.userStep = 0;
+    this.level = 1;
+    this.isUserTurn = false;
+  }
   create() {
-    this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Puzzle 3 (Draw Image)', { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
-    this.input.once('pointerdown', () => this.scene.start('Puzzle4'));
+    // Place the simon-space-ship in the center of the screen
+    const centerX = this.cameras.main.centerX;
+    const centerY = this.cameras.main.centerY;
+    this.ship = this.add.image(centerX, centerY, 'simon-space-ship').setOrigin(0.5);
+
+    // Box colors and offsets (relative to ship)
+    this.boxData = [
+      { color: 0x2196f3, name: 'blue',   dx: -135, dy: 0 },
+      { color: 0x43a047, name: 'green',  dx: -60,  dy: 40 },
+      { color: 0xffeb3b, name: 'yellow', dx: 60,   dy: 40 },
+      { color: 0xf44336, name: 'red',    dx: 135,  dy: 0 }
+    ];
+    this.simonBoxes = [];
+    for (let idx = 0; idx < this.boxData.length; idx++) {
+      const { color, name } = this.boxData[idx];
+      const box = this.add.rectangle(0, 0, 65, 65, color, 0.001)
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          console.log('this.isUserTurn', this.isUserTurn);
+          if (!this.isUserTurn) return;
+          this.handleUserInput(idx);
+        });
+      this.simonBoxes.push(box);
+      this[name + 'Box'] = box;
+    }
+
+    // Start continuous bounce animation for the ship
+    this.tweens.add({
+      targets: this.ship,
+      y: centerY - 5,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Update box positions relative to the ship in update loop
+    this.shipBaseY = centerY;
+    this.events.on('update', this.updateBoxes, this);
+
+    // Start the Simon game sequence after a short delay to allow box positions to update
+    this.time.delayedCall(200, () => this.startSimon());
+    // Remove or comment out the line below to avoid skipping the Simon game
+    // this.input.once('pointerdown', () => this.scene.start('Puzzle4'));
+  }
+
+  update(time, delta) {
+    this.updateBoxes();
+  }
+
+  updateBoxes() {
+    if (!this.ship) return;
+    for (let i = 0; i < this.simonBoxes.length; i++) {
+      const { dx, dy } = this.boxData[i];
+      this.simonBoxes[i].x = this.ship.x + dx;
+      this.simonBoxes[i].y = this.ship.y + dy;
+    }
+  }
+
+  startSimon() {
+    this.sequence = [];
+    this.level = 1;
+    this.nextLevel();
+  }
+
+  nextLevel() {
+    // Add a random box to the sequence
+    this.sequence.push(Phaser.Math.Between(0, this.simonBoxes.length - 1));
+    this.userStep = 0;
+    this.isUserTurn = false;
+    this.playSequence();
+  }
+
+  playSequence() {
+    let i = 0;
+    this.isUserTurn = false;
+    const stepTime = 600;
+    const totalTime = stepTime * this.sequence.length;
+    // Play the sequence visually
+    this.flashBox(this.sequence[0]);
+    if (this.sequence.length > 1) {
+      this.time.addEvent({
+        delay: stepTime,
+        repeat: this.sequence.length - 2,
+        callback: () => {
+          i++;
+          this.flashBox(this.sequence[i]);
+        },
+        callbackScope: this
+      });
+    }
+    // Always enable user input after the sequence is done
+    this.time.delayedCall(totalTime, () => { this.isUserTurn = true; });
+  }
+
+  flashBox(idx) {
+    const box = this.simonBoxes[idx];
+    const color = this.boxData[idx].color;
+    // Create a glowing flash effect (same color as box, semi-transparent, blurred) as a circle
+    const glow = this.add.circle(box.x, box.y, 38, color, 0.7)
+      .setOrigin(0.5)
+      .setDepth(10);
+    this.tweens.add({
+      targets: glow,
+      scale: 1.5,
+      alpha: 0,
+      duration: 500,
+      ease: 'Cubic.easeOut',
+      onComplete: () => glow.destroy()
+    });
+  }
+
+  handleUserInput(idx) {
+    this.flashBox(idx);
+    if (idx === this.sequence[this.userStep]) {
+      this.userStep++;
+      if (this.userStep === this.sequence.length) {
+        this.isUserTurn = false;
+        this.time.delayedCall(700, () => this.nextLevel(), []);
+      }
+    } else {
+      // User failed: grayscale effect and stop ship animation
+      this.isUserTurn = false;
+      // Stop ship animation
+      if (this.ship && this.ship.anims) this.ship.anims.stop && this.ship.anims.stop();
+      if (this.ship && this.ship.active && this.ship.scene) {
+        // Remove all tweens for the ship
+        this.tweens.killTweensOf(this.ship);
+      }
+      // Add grayscale effect to the whole game canvas
+      let usedPipeline = false;
+      if (this.cameras.main.setPostPipeline && this.sys.game.renderer.pipelines) {
+        // Try Phaser 3 built-in pipeline if available
+        const grayPipeline = this.sys.game.renderer.pipelines.get('Gray');
+        if (grayPipeline) {
+          this.cameras.main.setPostPipeline('Gray');
+          usedPipeline = true;
+        }
+      }
+      // Fallback to CSS filter
+      const canvas = this.sys.game.canvas;
+      if (!usedPipeline && canvas) canvas.style.filter = 'grayscale(1)';
+      this.time.delayedCall(900, () => {
+        // Remove grayscale effect before changing scene
+        if (usedPipeline) this.cameras.main.clearPostPipeline();
+        if (canvas) canvas.style.filter = '';
+        this.scene.start('Puzzle4');
+      });
+    }
   }
 }
 
