@@ -144,7 +144,19 @@ const config = {
   }
 };
 
-// Start Phaser game
+// Start Phaser game and force fullscreen
 window.addEventListener('load', () => {
-  new Phaser.Game(config);
+  const game = new Phaser.Game(config);
+  function goFullscreen() {
+    const canvas = document.querySelector('canvas');
+    if (canvas && document.fullscreenEnabled && !document.fullscreenElement) {
+      canvas.requestFullscreen();
+    }
+  }
+  // Try to go fullscreen on load
+  goFullscreen();
+  // Also go fullscreen on any user interaction (required by some browsers)
+  window.addEventListener('pointerdown', goFullscreen, { once: true });
+  window.addEventListener('touchstart', goFullscreen, { once: true });
+  window.addEventListener('keydown', goFullscreen, { once: true });
 });
